@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { ShoppingBag, BookOpen, XCircle } from "lucide-react";
 import { useBooks } from '../contexts/BookContext';
 import { useNavigate } from 'react-router-dom';
+import Swal from 'sweetalert2';
 
 interface Book {
   id: string | number;
@@ -57,7 +58,21 @@ const Categories = () => {
   const handleAddToCart = async (e: React.MouseEvent, book: Book, isRenting: boolean) => {
     e.stopPropagation();
     if (!token) {
-      alert("Login required to add items to the cart.");
+      Swal.fire({
+        icon: "error",
+        title: "Login required to add items to the cart.",
+        toast: true,
+        position: "bottom",
+        timer: 3000,
+        timerProgressBar: true,
+        showConfirmButton: false,
+        background: "#ffffff",
+        iconColor: "#EF4444",
+        customClass: {
+          popup: "rounded-xl border-2 border-red-400",
+          title: "text-gray-800 font-medium text-lg",
+        },
+      });
       return;
     }
   

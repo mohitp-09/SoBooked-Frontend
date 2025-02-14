@@ -33,7 +33,7 @@ const Hero = () => {
   }, []);
 
   return (
-    <div className="relative h-[600px] overflow-hidden">
+    <div className="relative h-[400px] sm:h-[450px] md:h-[500px] lg:h-[600px] overflow-hidden">
       {carouselImages.map((image, index) => (
         <div
           key={index}
@@ -46,40 +46,64 @@ const Hero = () => {
             alt={`Slide ${index + 1}`}
             className="w-full h-full object-cover"
           />
-          <div className="absolute inset-0 bg-black/30 backdrop-blur-[2px]" />
-          <div className="absolute inset-0 flex items-center justify-center">
-            <h1 className="text-6xl font-bold text-white text-center px-4 drop-shadow-lg">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px]" />
+          <div className="absolute inset-0 flex items-center justify-center p-4">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white text-center 
+                         max-w-[90%] sm:max-w-[80%] md:max-w-[70%] leading-tight drop-shadow-lg">
               {image.title}
             </h1>
           </div>
         </div>
       ))}
       
+      {/* Navigation Buttons - Hidden on smallest screens */}
       <button
         onClick={prevSlide}
-        className="absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/20 backdrop-blur-md hover:bg-white/30 transition-all"
+        className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 p-1.5 sm:p-2 rounded-full 
+                 bg-white/20 backdrop-blur-md hover:bg-white/30 transition-all
+                 hidden sm:block"
+        aria-label="Previous slide"
       >
-        <ChevronLeft className="h-8 w-8 text-white" />
+        <ChevronLeft className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
       </button>
       
       <button
         onClick={nextSlide}
-        className="absolute right-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/20 backdrop-blur-md hover:bg-white/30 transition-all"
+        className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 p-1.5 sm:p-2 rounded-full 
+                 bg-white/20 backdrop-blur-md hover:bg-white/30 transition-all
+                 hidden sm:block"
+        aria-label="Next slide"
       >
-        <ChevronRight className="h-8 w-8 text-white" />
+        <ChevronRight className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
       </button>
       
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+      {/* Slide Indicators */}
+      <div className="absolute bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 flex gap-2 sm:gap-3">
         {carouselImages.map((_, index) => (
           <button
             key={index}
             onClick={() => setCurrentSlide(index)}
-            className={`w-3 h-3 rounded-full transition-all ${
-              index === currentSlide ? 'bg-white scale-125' : 'bg-white/50'
+            className={`w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full transition-all ${
+              index === currentSlide 
+                ? 'bg-white scale-125' 
+                : 'bg-white/50 hover:bg-white/70'
             }`}
+            aria-label={`Go to slide ${index + 1}`}
           />
         ))}
       </div>
+
+      {/* Touch Swipe Areas - Visible only on small screens */}
+      <button
+        onClick={prevSlide}
+        className="sm:hidden absolute left-0 top-0 h-full w-1/4 opacity-0"
+        aria-label="Previous slide"
+      />
+      <button
+        onClick={nextSlide}
+        className="sm:hidden absolute right-0 top-0 h-full w-1/4 opacity-0"
+        aria-label="Next slide"
+      />
     </div>
   );
 };

@@ -67,7 +67,7 @@ const AuthenticatedNav: React.FC<AuthenticatedNavProps> = ({ onLogout }) => {
     <>
       <nav className="fixed w-full bg-white/80 backdrop-blur-md shadow-sm z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center h-16">
+          <div className="flex items-center justify-between h-16">
             {/* Logo */}
             <div className="flex-shrink-0 flex items-center">
               <Link to="/" className="flex items-center">
@@ -79,7 +79,9 @@ const AuthenticatedNav: React.FC<AuthenticatedNavProps> = ({ onLogout }) => {
             </div>
 
             {/* Search and City Selection Group */}
-            <div className="flex flex-1 items-center justify-center max-w-2xl mx-4">
+            <div className="flex flex-1 items-center justify-center max-w-2xl mx-4 ml-[210px] max-[1050px]:m-[0px_8px_0px_16px]">
+
+
               {/* Search Bar */}
               <div className="flex-1 max-w-lg">
                 <form onSubmit={handleSearch}>
@@ -129,11 +131,11 @@ const AuthenticatedNav: React.FC<AuthenticatedNavProps> = ({ onLogout }) => {
             </div>
 
             {/* Desktop Navigation */}
-            <div className="hidden md:flex items-center gap-4">
+            <div className="hidden md:flex items-center space-x-2">
               {/* Add Book Button */}
               <button
                 onClick={() => navigate("/addbook")}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
               >
                 <PlusCircle className="h-5 w-5" />
                 <span className="text-sm font-medium">Add Book</span>
@@ -142,7 +144,7 @@ const AuthenticatedNav: React.FC<AuthenticatedNavProps> = ({ onLogout }) => {
               {/* Cart Button */}
               <button
                 onClick={() => setIsCartOpen(true)}
-                className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-all relative"
+                className="inline-flex items-center justify-center p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-all relative"
                 aria-label="Shopping Cart"
               >
                 <ShoppingCart className="h-6 w-6" />
@@ -156,7 +158,7 @@ const AuthenticatedNav: React.FC<AuthenticatedNavProps> = ({ onLogout }) => {
               {/* Logout Button */}
               <button
                 onClick={handleLogout}
-                className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-all"
+                className="inline-flex items-center justify-center p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-all"
                 aria-label="Log Out"
               >
                 <LogOut className="h-6 w-6" />

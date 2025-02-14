@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Book, Search, Menu, X } from "lucide-react";
 import AuthModal from "./AuthModal";
 import { Link } from "react-router-dom";
+import { useBooks } from "../contexts/BookContext";
 
 interface NavbarProps {
   onLogin: () => void;
@@ -10,7 +11,8 @@ interface NavbarProps {
 const Navbar: React.FC<NavbarProps> = ({ onLogin }) => {
   const [isSignUpOpen, setIsSignUpOpen] = useState(false);
   const [isSignInOpen, setIsSignInOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
+  const { searchQuery, setSearchQuery, selectedCity, setSelectedCity, cities } =
+      useBooks();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {

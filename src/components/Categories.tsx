@@ -102,9 +102,40 @@ const Categories = () => {
     (book) => activeCategory === "all" || book.category === activeCategory
   );
 
-  const handleBookClick = (bookName: string) => {
+  const handleBookClick = async (bookName: string, bookId: number) => {
+    
+    const token = localStorage.getItem("token"); // Get token from localStorage
+  
+    if (!token) {
+      console.error("No token found, user not authenticated.");
+      return;
+    }
+  
     const slug = bookName.toLowerCase().replace(/[^a-z0-9]+/g, '-');
     navigate(`/${slug}`);
+  
+    try {
+      const response = await fetch("https://online-bookstore-rrd8.onrender.com/api/user-activity/save", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          bookId: bookId,
+          actionType: "VIEW"
+        })
+      });
+  
+      if (response.ok) {
+        console.log("Activity saved successfully.");
+      } else {
+        const errorText = await response.text();
+        console.error("Failed to save activity:", errorText);
+      }
+    } catch (error) {
+      console.error("Error:", error);
+    }
   };
 
   if (!loading && !displayBooks.length) {
@@ -144,7 +175,7 @@ const Categories = () => {
             {displayBooks.map((book) => (
               <div
                 key={book.id}
-                onClick={() => handleBookClick(book.name)}
+                onClick={() => handleBookClick(book.name, book.id)}
                 className="group relative bg-white/60 backdrop-blur-lg rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-all border border-white/20 cursor-pointer"
               >
                 <div className="aspect-[3/4] overflow-hidden">

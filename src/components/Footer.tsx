@@ -9,7 +9,7 @@ const Footer = () => {
           <div>
             <div className="flex items-center mb-4">
               <Book className="h-8 w-8 text-blue-500" />
-              <span className="ml-2 text-xl font-bold text-white">BookHaven</span>
+              <span className="ml-2 text-xl font-bold text-white">SoBooked</span>
             </div>
             <p className="text-sm">
               Your premier destination for discovering and purchasing quality books online.

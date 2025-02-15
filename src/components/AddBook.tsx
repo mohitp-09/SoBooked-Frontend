@@ -12,6 +12,7 @@ import {
   FileText
 } from "lucide-react";
 import Swal from 'sweetalert2';
+import imageCompression from 'browser-image-compression';
 
 interface BookFormData {
   name: string;
@@ -23,6 +24,41 @@ interface BookFormData {
   description: string;
   phoneNumber: string;
 }
+
+// Utility function to properly capitalize text
+const formatText = (text: string): string => {
+  // Handle empty or null input
+  if (!text) return "";
+
+  // Split the text into words
+  return text
+    .toLowerCase()
+    .split(' ')
+    .map(word => {
+      // Skip empty words
+      if (!word) return word;
+      
+      // List of words that should remain lowercase (unless at start)
+      const lowercaseWords = ['a', 'an', 'the', 'and', 'but', 'or', 'for', 'nor', 'on', 'at', 'to', 'from', 'by', 'in', 'of'];
+      
+      // If it's a lowercase word and not at the start, keep it lowercase
+      if (lowercaseWords.includes(word) && text.indexOf(word) !== 0) {
+        return word;
+      }
+      
+      // Capitalize the first letter and keep the rest in original case
+      return word.charAt(0).toUpperCase() + word.slice(1);
+    })
+    .join(' ');
+};
+
+// Format city name
+const formatCityName = (city: string): string => {
+  if (!city) return "";
+  return city.split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
+};
 
 const categories = [
   "Fiction",
@@ -76,6 +112,7 @@ const AddBook: React.FC = () => {
   const [citySearch, setCitySearch] = useState("");
   const cityInputRef = useRef<HTMLInputElement>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isConverting, setIsConverting] = useState(false);
 
   const filteredCities = cities.filter(city =>
     city.toLowerCase().includes(citySearch.toLowerCase())
@@ -86,33 +123,87 @@ const AddBook: React.FC = () => {
   ) => {
     const { name, value } = e.target;
     
-    setFormData((prev) => ({
+    // Format different input types appropriately
+    const formattedValue = 
+      name === "name" || name === "author" ? formatText(value) :
+      name === "city" ? formatCityName(value) :
+      name === "description" ? value :  // Remove trim() to allow spaces
+      name === "buyPrice" || name === "rentalPrice" ? parseFloat(value) :
+      name === "phoneNumber" && value.trim() === "" ? null : 
+      value;
+
+    setFormData(prev => ({
       ...prev,
-      [name]: 
-        name === "buyPrice" || name === "rentalPrice" ? parseFloat(value) :
-        name === "phoneNumber" && value.trim() === "" ? null : value,
+      [name]: formattedValue
     }));
   };
 
   const handleCityClick = (city: string) => {
-    setFormData(prev => ({ ...prev, city }));
-    setCitySearch(city);
+    const formattedCity = formatCityName(city);
+    setFormData(prev => ({ ...prev, city: formattedCity }));
+    setCitySearch(formattedCity);
     setShowCityDropdown(false);
   };
 
   const handleCityInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formattedCity = formatCityName(e.target.value);
     setCitySearch(e.target.value);
-    setFormData(prev => ({ ...prev, city: e.target.value }));
+    setFormData(prev => ({ ...prev, city: formattedCity }));
     setShowCityDropdown(true);
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
-    if (selectedFile) {
-      setFile(selectedFile);
+    if (!selectedFile) return;
+
+    try {
+      setIsConverting(true);
+
+      // Compression options
+      const options = {
+        maxSizeMB: 1,
+        maxWidthOrHeight: 1920,
+        useWebWorker: true,
+        fileType: 'image/jpeg'
+      };
+
+      // Compress the image
+      const compressedFile = await imageCompression(selectedFile, options);
+      
+      // Create a new file with a .jpg extension
+      const finalFile = new File(
+        [compressedFile],
+        selectedFile.name.replace(/\.(heic|png|jpeg|jpg|gif)$/i, '.jpg'),
+        { type: 'image/jpeg' }
+      );
+
+      setFile(finalFile);
+      
+      // Create preview URL
       const reader = new FileReader();
       reader.onloadend = () => setPreviewUrl(reader.result as string);
-      reader.readAsDataURL(selectedFile);
+      reader.readAsDataURL(finalFile);
+
+      setIsConverting(false);
+    } catch (error) {
+      console.error('Error processing image:', error);
+      await Swal.fire({
+        icon: "error",
+        title: "Failed to process image",
+        text: "Please try a different image format",
+        toast: true,
+        position: "bottom",
+        timer: 3000,
+        timerProgressBar: true,
+        showConfirmButton: false,
+        background: "#ffffff",
+        iconColor: "#EF4444",
+        customClass: {
+          popup: "rounded-xl border-2 border-red-400",
+          title: "text-gray-800 font-medium text-lg",
+        },
+      });
+      setIsConverting(false);
     }
   };
 
@@ -121,16 +212,18 @@ const AddBook: React.FC = () => {
     setIsSubmitting(true);
   
     try {
+      // Final formatting before submission
+      const finalFormData = {
+        ...formData,
+        name: formatText(formData.name),
+        author: formatText(formData.author),
+        city: formatCityName(formData.city),
+        description: formData.description.trim()  // Only trim at submission
+      };
+
       const bookData = JSON.stringify({
-        name: formData.name,
-        author: formData.author,
-        buyPrice: formData.buyPrice,
-        rentalPrice: formData.rentalPrice,
-        category: formData.category,
-        city: formData.city,
-        description: formData.description,
-        phoneNumber: formData.phoneNumber,
-        availableForRent: formData.rentalPrice > 0
+        ...finalFormData,
+        availableForRent: finalFormData.rentalPrice > 0
       });
   
       const formDataToSend = new FormData();
@@ -162,7 +255,7 @@ const AddBook: React.FC = () => {
       // If we got here, the book was added successfully
       await Swal.fire({
         icon: "success",
-        title: `${formData.name} added successfully!`,
+        title: `${finalFormData.name} added successfully!`,
         toast: true,
         position: "bottom",
         timer: 3000,
@@ -441,7 +534,7 @@ const AddBook: React.FC = () => {
                 Book Cover
               </h2>
               <p className="text-sm text-gray-500 mt-1">
-                Upload a high-quality image of your book
+                Upload a high-quality image of your book (JPEG, PNG, GIF supported)
               </p>
             </div>
 
@@ -465,16 +558,27 @@ const AddBook: React.FC = () => {
                     required
                   />
                   <div className="text-center">
-                    <Upload className="mx-auto h-12 w-12 text-gray-400" />
-                    <div className="mt-4 text-sm text-gray-600">
-                      <span className="font-semibold text-blue-600">
-                        Click to upload
-                      </span>{" "}
-                      or drag and drop
-                    </div>
-                    <p className="text-xs text-gray-500 mt-1">
-                      PNG, JPG, GIF up to 10MB
-                    </p>
+                    {isConverting ? (
+                      <>
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+                        <div className="mt-4 text-sm text-gray-600">
+                          Compressing image...
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="mx-auto h-12 w-12 text-gray-400" />
+                        <div className="mt-4 text-sm text-gray-600">
+                          <span className="font-semibold text-blue-600">
+                            Click to upload
+                          </span>{" "}
+                          or drag and drop
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">
+                          JPEG, PNG, GIF up to 10MB
+                        </p>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
@@ -499,9 +603,9 @@ const AddBook: React.FC = () => {
 
           <button
             type="submit"
-            disabled={isSubmitting}
+            disabled={isSubmitting || isConverting}
             className={`w-full py-3 px-4 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 shadow-lg ${
-              isSubmitting
+              isSubmitting || isConverting
                 ? 'bg-blue-400 cursor-not-allowed'
                 : 'bg-blue-600 hover:bg-blue-700'
             } text-white`}

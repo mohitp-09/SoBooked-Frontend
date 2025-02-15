@@ -150,15 +150,17 @@ const AddBook: React.FC = () => {
           body: formDataToSend,
         }
       );
-  
-      const result = await response.json();
-  
+
+      // First try to get the response as text
+      const responseText = await response.text();
+      
+      // If the response is not OK, throw an error
       if (!response.ok) {
-        throw new Error(result.message || `HTTP error! status: ${response.status}`);
+        throw new Error(responseText || `HTTP error! status: ${response.status}`);
       }
-  
-      // Show success toast
-      Swal.fire({
+
+      // If we got here, the book was added successfully
+      await Swal.fire({
         icon: "success",
         title: `${formData.name} added successfully!`,
         toast: true,
@@ -186,13 +188,14 @@ const AddBook: React.FC = () => {
         phoneNumber: ""
       });
       setPreviewUrl(null);
+      setFile(null);
       setCitySearch("");
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
     } catch (error) {
-      // Show error toast
-      Swal.fire({
+      console.error('Error adding book:', error);
+      await Swal.fire({
         icon: "error",
         title: error instanceof Error ? error.message : "Failed to add book",
         toast: true,

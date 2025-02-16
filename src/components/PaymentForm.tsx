@@ -52,7 +52,9 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onClose })
       }
 
       const orderData = await orderResponse.json();
+      console.log(orderData);
       const { clientSecret } = orderData;
+      console.log(clientSecret)
 
       if (!clientSecret) {
         throw new Error('No client secret received from the server');
@@ -75,7 +77,9 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onClose })
         throw new Error(result.error.message || 'Payment failed');
       }
 
-      if (result.paymentIntent.status !== 'succeeded') {
+      console.log(result.paymentIntent.status)
+
+      if (result.paymentIntent.status !== 'requires_capture') {
         throw new Error('Payment was not successful');
       }
 
@@ -84,11 +88,8 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onClose })
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/x-www-form-urlencoded'
+          'Content-Type': 'application/json'
         },
-        // body: new URLSearchParams({ 
-        //   paymentId: result.paymentIntent.id
-        // }),
         credentials: 'include',
       });
 

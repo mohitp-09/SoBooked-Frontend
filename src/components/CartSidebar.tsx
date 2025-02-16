@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from "react";
+import { loadStripe } from '@stripe/stripe-js';
+import { Elements } from '@stripe/react-stripe-js';
 import {
   X,
   Trash2,
@@ -7,7 +9,12 @@ import {
   ShoppingCart,
   Heart,
   Share2,
+  Loader2,
 } from "lucide-react";
+import PaymentForm from './PaymentForm';
+
+// Initialize Stripe
+const stripePromise = loadStripe("pk_test_51PuacPFId8GxoslMJxzl4TjLM44cp5Fy7h4Nprv0QMs2DyGZfgfsjxutOPhffYO47jYLgH3sZkvWE35iAp7q1ZvW008VVCn2GP");
 
 interface CartItem {
   id: number;
@@ -30,6 +37,64 @@ const CartSidebar: React.FC<CartSidebarProps> = ({ isOpen, onClose }) => {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [imageErrors, setImageErrors] = useState<Set<number>>(new Set());
+  const [showPayment, setShowPayment] = useState(false);
+  const [removingItems, setRemovingItems] = useState<Set<number>>(new Set());
+
+  const fetchCartItems = async () => {
+    setLoading(true);
+    setError(null);
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      setError("User not authenticated. Please log in.");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        "https://online-bookstore-rrd8.onrender.com/cart/getBooks",
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+          },
+          credentials: 'include'
+        }
+      );
+
+      if (!response.ok) {
+        if (response.status === 403) {
+          localStorage.removeItem('token');
+          window.location.href = '/login';
+          throw new Error("Session expired. Please log in again.");
+        }
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      const books = data.books || data.cartItems || data || [];
+      if (!Array.isArray(books)) {
+        throw new Error("Unexpected response format from server.");
+      }
+
+      const processedBooks = books.map((book) => ({
+        ...book,
+        photo: book.photo ? `data:image/jpeg;base64,${book.photo}` : "",
+      }));
+
+      setCartItems(processedBooks);
+    } catch (error) {
+      console.error("Error fetching cart items:", error);
+      setError(
+        error instanceof Error ? error.message : "Failed to load cart items."
+      );
+      setCartItems([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (!isOpen) {
@@ -39,65 +104,17 @@ const CartSidebar: React.FC<CartSidebarProps> = ({ isOpen, onClose }) => {
       return;
     }
 
-    const fetchCartItems = async () => {
-      setLoading(true);
-      setError(null);
-      const token = localStorage.getItem("token");
-
-      if (!token) {
-        setError("User not authenticated. Please log in.");
-        setLoading(false);
-        return;
-      }
-
-      try {
-        const response = await fetch(
-          "https://online-bookstore-rrd8.onrender.com/cart/getBooks",
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-          }
-        );
-
-        if (!response.ok) {
-          throw new Error(`Error ${response.status}: ${response.statusText}`);
-        }
-
-        const data = await response.json();
-        console.log("Fetched cart items:", data);
-        const books = data.books || data.cartItems || data || [];
-        if (!Array.isArray(books)) {
-          throw new Error("Unexpected response format from server.");
-        }
-
-        const processedBooks = books.map((book) => ({
-          ...book,
-          photo: book.photo ? `data:image/jpeg;base64,${book.photo}` : "",
-        }));
-
-        setCartItems(processedBooks);
-      } catch (error) {
-        console.error("Error fetching cart items:", error);
-        setError(
-          error instanceof Error ? error.message : "Failed to load cart items."
-        );
-        setCartItems([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchCartItems();
   }, [isOpen]);
 
   const handleDelete = async (bookId: number) => {
     const token = localStorage.getItem("token");
     if (!token) {
-      alert("User not authenticated. Please log in.");
+      setError("User not authenticated. Please log in.");
       return;
     }
+
+    setRemovingItems(prev => new Set(prev).add(bookId));
 
     try {
       const response = await fetch(
@@ -107,6 +124,7 @@ const CartSidebar: React.FC<CartSidebarProps> = ({ isOpen, onClose }) => {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/x-www-form-urlencoded",
+            "Accept": "application/json"
           },
           body: new URLSearchParams({ bookId: bookId.toString() }),
           credentials: "include",
@@ -114,22 +132,43 @@ const CartSidebar: React.FC<CartSidebarProps> = ({ isOpen, onClose }) => {
       );
 
       if (!response.ok) {
+        if (response.status === 403) {
+          localStorage.removeItem('token');
+          window.location.href = '/login';
+          throw new Error("Session expired. Please log in again.");
+        }
         throw new Error("Failed to delete item from cart");
       }
-
-      alert("Item removed from cart");
 
       setCartItems((prevItems) =>
         prevItems.filter((item) => item.bookId !== bookId)
       );
     } catch (error) {
       console.error("Error:", error);
-      alert("Failed to remove item");
+      setError(error instanceof Error ? error.message : "Failed to remove item");
+    } finally {
+      setRemovingItems(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(bookId);
+        return newSet;
+      });
     }
   };
 
   const handleImageError = (itemId: number) => {
     setImageErrors((prev) => new Set(prev).add(itemId));
+  };
+
+  const handlePaymentSuccess = () => {
+    setShowPayment(false);
+    setCartItems([]);
+    onClose();
+    // Show success message
+    const successMessage = document.createElement('div');
+    successMessage.className = 'fixed bottom-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+    successMessage.textContent = 'Payment successful! Your order has been placed.';
+    document.body.appendChild(successMessage);
+    setTimeout(() => successMessage.remove(), 5000);
   };
 
   const totalItems = cartItems.length;
@@ -189,9 +228,7 @@ const CartSidebar: React.FC<CartSidebarProps> = ({ isOpen, onClose }) => {
                 </div>
               ) : error ? (
                 <div className="p-5 bg-red-50 border border-red-200 rounded-xl">
-                  <p className="text-center text-red-600 font-medium">
-                    {error}
-                  </p>
+                  <p className="text-center text-red-600 font-medium">{error}</p>
                 </div>
               ) : cartItems.length === 0 ? (
                 <div className="text-center py-16">
@@ -276,10 +313,17 @@ const CartSidebar: React.FC<CartSidebarProps> = ({ isOpen, onClose }) => {
                             <div className="flex items-center gap-3">
                               <button
                                 onClick={() => handleDelete(item.bookId)}
-                                className="text-gray-400 hover:text-red-500 flex items-center gap-1.5 text-sm"
+                                disabled={removingItems.has(item.bookId)}
+                                className={`text-gray-400 hover:text-red-500 flex items-center gap-1.5 text-sm ${
+                                  removingItems.has(item.bookId) ? 'opacity-50 cursor-not-allowed' : ''
+                                }`}
                                 aria-label="Remove from cart"
                               >
-                                <Trash2 className="w-4 h-4" />
+                                {removingItems.has(item.bookId) ? (
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                  <Trash2 className="w-4 h-4" />
+                                )}
                                 <span>Remove</span>
                               </button>
 
@@ -323,7 +367,15 @@ const CartSidebar: React.FC<CartSidebarProps> = ({ isOpen, onClose }) => {
                       ₹{subtotal.toFixed(2)}
                     </p>
                   </div>
-                  <button className="bg-blue-600 text-white px-6 py-3 rounded-xl font-medium hover:bg-blue-700 active:bg-blue-800 transform hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 shadow-lg shadow-blue-600/25">
+                  <button
+                    onClick={() => setShowPayment(true)}
+                    className="bg-blue-600 text-white px-6 py-3 rounded-xl font-medium 
+                             hover:bg-blue-700 active:bg-blue-800 transform 
+                             hover:-translate-y-0.5 active:translate-y-0 
+                             transition-all duration-200 focus:outline-none 
+                             focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 
+                             shadow-lg shadow-blue-600/25"
+                  >
                     Proceed to Checkout
                   </button>
                 </div>
@@ -335,6 +387,17 @@ const CartSidebar: React.FC<CartSidebarProps> = ({ isOpen, onClose }) => {
           )}
         </div>
       </div>
+
+      {/* Payment Modal */}
+      {showPayment && (
+        <Elements stripe={stripePromise}>
+          <PaymentForm
+            amount={subtotal}
+            onSuccess={handlePaymentSuccess}
+            onClose={() => setShowPayment(false)}
+          />
+        </Elements>
+      )}
     </>
   );
 };

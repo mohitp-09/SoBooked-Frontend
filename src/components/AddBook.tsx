@@ -255,19 +255,21 @@ const AddBook: React.FC = () => {
       // If we got here, the book was added successfully
       await Swal.fire({
         icon: "success",
-        title: `${finalFormData.name} added successfully!`,
+        title: `📚 "${finalFormData.name}" has been added to your collection!`,
         toast: true,
         position: "bottom",
-        timer: 3000,
+        timer: 2500,
         timerProgressBar: true,
         showConfirmButton: false,
-        background: "#ffffff",
+        background: "#f9fafb",
         iconColor: "#4F46E5",
         customClass: {
-          popup: "rounded-xl border-2 border-indigo-400",
-          title: "text-gray-800 font-medium text-lg",
+          popup: "rounded-lg border border-indigo-500 shadow-md px-4 py-2 max-w-[280px] sm:max-w-[320px]", 
+          title: "text-gray-900 font-medium text-sm sm:text-base tracking-wide text-center",
+          timerProgressBar: "bg-indigo-500",
         },
       });
+      
   
       // Reset form
       setFormData({

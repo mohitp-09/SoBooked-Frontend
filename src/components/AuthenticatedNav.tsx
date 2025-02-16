@@ -7,7 +7,7 @@ import {
   MapPin,
   PlusCircle,
   Menu,
-  X
+  X,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Link } from "react-router-dom";
@@ -80,8 +80,6 @@ const AuthenticatedNav: React.FC<AuthenticatedNavProps> = ({ onLogout }) => {
 
             {/* Search and City Selection Group */}
             <div className="flex flex-1 items-center justify-center max-w-2xl mx-4 ml-[210px] max-[1050px]:m-[0px_8px_0px_16px]">
-
-
               {/* Search Bar */}
               <div className="flex-1 max-w-lg">
                 <form onSubmit={handleSearch}>
@@ -109,7 +107,9 @@ const AuthenticatedNav: React.FC<AuthenticatedNavProps> = ({ onLogout }) => {
                   className="flex items-center gap-2 px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors whitespace-nowrap"
                 >
                   <MapPin className="h-5 w-5 text-gray-500" />
-                  <span className="text-sm font-medium hidden sm:inline">{selectedCity}</span>
+                  <span className="text-sm font-medium hidden sm:inline">
+                    {selectedCity}
+                  </span>
                 </button>
                 {isCityDropdownOpen && (
                   <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-1 border border-gray-200 z-50">
@@ -185,6 +185,20 @@ const AuthenticatedNav: React.FC<AuthenticatedNavProps> = ({ onLogout }) => {
           {isMobileMenuOpen && (
             <div className="md:hidden">
               <div className="px-2 pt-2 pb-3 space-y-1">
+                <button
+                  onClick={() => setIsCartOpen(true)}
+                  className="inline-flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-all relative"
+                  aria-label="Shopping Cart"
+                >
+                  <ShoppingCart className="h-5 w-5" />
+                  <span className="text-sm font-medium">Cart</span>
+                  {totalItems > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-blue-600 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                      {totalItems}
+                    </span>
+                  )}
+                </button>
+
                 {/* Add Book Button */}
                 <button
                   onClick={() => {

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { ShoppingBag, BookOpen, XCircle } from "lucide-react";
+import { ShoppingBag, BookOpen, XCircle, Loader2, } from "lucide-react";
 import { useBooks } from '../contexts/BookContext';
 import { useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
@@ -41,6 +41,7 @@ const LoadingSkeleton = () => (
 const Categories = () => {
   const { filteredBooks, loading } = useBooks();
   const [activeCategory, setActiveCategory] = useState<string>("all");
+  const [loadingStates, setLoadingStates] = useState<Record<string, boolean>>({});
   const token = localStorage.getItem("token");
   const navigate = useNavigate();
 
@@ -75,6 +76,9 @@ const Categories = () => {
       });
       return;
     }
+
+    const loadingKey = `${book.id}-${isRenting ? 'rent' : 'buy'}`;
+    setLoadingStates(prev => ({ ...prev, [loadingKey]: true }));
   
     try {
       const response = await fetch(
@@ -91,10 +95,43 @@ const Categories = () => {
         throw new Error(`Failed to add item to cart! Status: ${response.status}`);
       }
   
-      alert(`${book.name} added to cart!`);
+      Swal.fire({
+              icon: "success",
+              title: `📚 "${book.name}" added to cart!`,
+              toast: true,
+              position: "bottom",
+              timer: 2500,
+              timerProgressBar: true,
+              showConfirmButton: false,
+              background: "#f9fafb",
+              iconColor: "#4F46E5",
+              customClass: {
+                popup: "rounded-lg border border-indigo-500 shadow-md px-4 py-2 max-w-[280px] sm:max-w-[320px]", 
+                title: "text-gray-900 font-medium text-sm sm:text-base tracking-wide text-center",
+                timerProgressBar: "bg-indigo-500",
+              },
+            });
+      
     } catch (error) {
       console.error("Error adding to cart:", error);
-      alert("Failed to add item to cart.");
+      Swal.fire({
+        icon: "error",
+        title: "Failed to add item to cart",
+        toast: true,
+        position: "bottom",
+        timer: 2500,
+        timerProgressBar: true,
+        showConfirmButton: false,
+        background: "#f9fafb",
+        iconColor: "#4F46E5",
+        customClass: {
+          popup: "rounded-lg border border-indigo-500 shadow-md px-4 py-2 max-w-[280px] sm:max-w-[320px]", 
+          title: "text-gray-900 font-medium text-sm sm:text-base tracking-wide text-center",
+          timerProgressBar: "bg-indigo-500",
+        },
+      });
+    } finally {
+      setLoadingStates(prev => ({ ...prev, [loadingKey]: false }));
     }
   };
   
@@ -103,8 +140,7 @@ const Categories = () => {
   );
 
   const handleBookClick = async (bookName: string, bookId: number) => {
-    
-    const token = localStorage.getItem("token"); // Get token from localStorage
+    const token = localStorage.getItem("token");
   
     if (!token) {
       console.error("No token found, user not authenticated.");
@@ -201,18 +237,28 @@ const Categories = () => {
                   <div className="flex flex-col gap-1">
                     <button
                       onClick={(e) => handleAddToCart(e, book, false)}
-                      className="w-full px-3 py-1.5 bg-blue-600 text-white rounded-md text-xs flex items-center justify-center gap-1 hover:bg-blue-700 transition-colors"
+                      disabled={loadingStates[`${book.id}-buy`]}
+                      className="w-full px-3 py-1.5 bg-blue-600 text-white rounded-md text-xs flex items-center justify-center gap-1 hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      <ShoppingBag className="h-3 w-3" />
+                      {loadingStates[`${book.id}-buy`] ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <ShoppingBag className="h-3 w-3" />
+                      )}
                       Buy ₹{book.buyPrice}
                     </button>
 
                     {book.availableForRent ? (
                       <button
                         onClick={(e) => handleAddToCart(e, book, true)}
-                        className="w-full px-3 py-1.5 border border-blue-600 text-blue-600 rounded-md text-xs flex items-center justify-center gap-1 hover:bg-blue-50 transition-colors"
+                        disabled={loadingStates[`${book.id}-rent`]}
+                        className="w-full px-3 py-1.5 border border-blue-600 text-blue-600 rounded-md text-xs flex items-center justify-center gap-1 hover:bg-blue-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        <BookOpen className="h-3 w-3" />
+                        {loadingStates[`${book.id}-rent`] ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <BookOpen className="h-3 w-3" />
+                        )}
                         Rent ₹{book.rentalPrice}/mo
                       </button>
                     ) : (

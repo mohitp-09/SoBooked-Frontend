@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, ShoppingBag, BookOpen, XCircle, MapPin, Phone, Tag, BookText, Loader2, Heart } from 'lucide-react';
 import { useBooks } from '../contexts/BookContext';
@@ -8,16 +8,28 @@ import Swal from 'sweetalert2';
 const BookDetail = () => {
   const { bookName } = useParams();
   const navigate = useNavigate();
-  const { filteredBooks } = useBooks();
+  const { filteredBooks, savedBooks, fetchSavedBooks } = useBooks();
   const token = localStorage.getItem("token");
   const [isLoadingPurchase, setIsLoadingPurchase] = useState(false);
   const [isLoadingRent, setIsLoadingRent] = useState(false);
-  const [isFavorite, setIsFavorite] = useState(false);
-  const [isLoadingFavorite, setIsLoadingFavorite] = useState(false);
+  const [localFavorite, setLocalFavorite] = useState(false);
+  const [isTogglingFavorite, setIsTogglingFavorite] = useState(false);
 
   const book = filteredBooks.find(b => 
     b.name.toLowerCase().replace(/[^a-z0-9]+/g, '-') === bookName
   );
+
+  const isFavorite = book ? savedBooks.includes(book.id) : false;
+
+  useEffect(() => {
+    if (token) {
+      fetchSavedBooks();
+    }
+  }, [token]);
+
+  useEffect(() => {
+    setLocalFavorite(isFavorite);
+  }, [isFavorite]);
 
   if (!book) {
     return (
@@ -43,7 +55,6 @@ const BookDetail = () => {
       return;
     }
 
-    // Set the appropriate loading state
     if (isRenting) {
       setIsLoadingRent(true);
     } else {
@@ -52,7 +63,7 @@ const BookDetail = () => {
   
     try {
       const response = await fetch(
-        `https://online-bookstore-rrd8.onrender.com/cart/add?bookId=${book.id}&isRenting=${isRenting}`,
+        `https://sobooked.onrender.com/cart/add?bookId=${book.id}&isRenting=${isRenting}`,
         {
           method: "POST",
           headers: {
@@ -65,22 +76,22 @@ const BookDetail = () => {
         throw new Error(`Failed to add item to cart! Status: ${response.status}`);
       }
   
-     Swal.fire({
-                   icon: "success",
-                   title: `📚 "${book.name}" added to cart!`,
-                   toast: true,
-                   position: "bottom",
-                   timer: 2500,
-                   timerProgressBar: true,
-                   showConfirmButton: false,
-                   background: "#f9fafb",
-                   iconColor: "#4F46E5",
-                   customClass: {
-                     popup: "rounded-lg border border-indigo-500 shadow-md px-4 py-2 max-w-[280px] sm:max-w-[320px]", 
-                     title: "text-gray-900 font-medium text-sm sm:text-base tracking-wide text-center",
-                     timerProgressBar: "bg-indigo-500",
-                   },
-                 });
+      Swal.fire({
+        icon: "success",
+        title: `📚 "${book.name}" added to cart!`,
+        toast: true,
+        position: "bottom",
+        timer: 2500,
+        timerProgressBar: true,
+        showConfirmButton: false,
+        background: "#f9fafb",
+        iconColor: "#4F46E5",
+        customClass: {
+          popup: "rounded-lg border border-indigo-500 shadow-md px-4 py-2 max-w-[280px] sm:max-w-[320px]", 
+          title: "text-gray-900 font-medium text-sm sm:text-base tracking-wide text-center",
+          timerProgressBar: "bg-indigo-500",
+        },
+      });
     } catch (error) {
       console.error("Error adding to cart:", error);
       Swal.fire({
@@ -99,7 +110,6 @@ const BookDetail = () => {
         },
       });
     } finally {
-      // Reset loading states
       if (isRenting) {
         setIsLoadingRent(false);
       } else {
@@ -114,10 +124,15 @@ const BookDetail = () => {
       return;
     }
 
-    setIsLoadingFavorite(true);
+    if (isTogglingFavorite) return;
+
+    setIsTogglingFavorite(true);
+    // Optimistically update the UI
+    setLocalFavorite(!localFavorite);
+
     try {
       const response = await fetch(
-        `https://online-bookstore-rrd8.onrender.com/favorites/${isFavorite ? 'remove' : 'add'}?bookId=${book.id}`,
+        `https://sobooked.onrender.com/saved-book/${localFavorite ? 'unsave' : 'save'}?bookId=${book.id}`,
         {
           method: "POST",
           headers: {
@@ -127,44 +142,26 @@ const BookDetail = () => {
       );
 
       if (!response.ok) {
-        throw new Error(`Failed to ${isFavorite ? 'remove from' : 'add to'} favorites!`);
+        // If the request fails, revert the optimistic update
+        setLocalFavorite(localFavorite);
+        throw new Error(`Failed to ${localFavorite ? 'unsave from' : 'add to'} favorites!`);
       }
 
-      setIsFavorite(!isFavorite);
-      Swal.fire({
-        icon: "success",
-        title: `${book.name} ${isFavorite ? 'removed from' : 'added to'} favorites!`,
-        toast: true,
-        position: "bottom",
-        timer: 2000,
-        timerProgressBar: true,
-        showConfirmButton: false,
-        background: "#ffffff",
-        iconColor: "#EF4444",
-        customClass: {
-          popup: "rounded-xl border-2 border-red-400",
-          title: "text-gray-800 font-medium text-lg",
-        },
-      });
+      // Refresh the saved books list in the background
+      fetchSavedBooks();
     } catch (error) {
       console.error("Error updating favorites:", error);
+      // Show error message to user
       Swal.fire({
         icon: "error",
         title: "Failed to update favorites",
         toast: true,
         position: "bottom",
-        timer: 3000,
-        timerProgressBar: true,
+        timer: 2500,
         showConfirmButton: false,
-        background: "#ffffff",
-        iconColor: "#EF4444",
-        customClass: {
-          popup: "rounded-xl border-2 border-red-400",
-          title: "text-gray-800 font-medium text-lg",
-        },
       });
     } finally {
-      setIsLoadingFavorite(false);
+      setIsTogglingFavorite(false);
     }
   };
 
@@ -208,22 +205,18 @@ const BookDetail = () => {
               </div>
               <button
                 onClick={handleToggleFavorite}
-                disabled={isLoadingFavorite}
+                disabled={isTogglingFavorite}
                 className={`p-3 rounded-full transition-all duration-300 ${
-                  isFavorite 
+                  localFavorite 
                     ? 'bg-red-50 text-red-500 hover:bg-red-100' 
                     : 'bg-gray-50 text-gray-400 hover:bg-gray-100 hover:text-red-500'
-                } ${isLoadingFavorite ? 'cursor-not-allowed opacity-50' : ''}`}
+                } ${isTogglingFavorite ? 'cursor-wait' : ''}`}
               >
-                {isLoadingFavorite ? (
-                  <Loader2 className="h-6 w-6 animate-spin" />
-                ) : (
-                  <Heart 
-                    className={`h-6 w-6 transition-transform duration-300 ${
-                      isFavorite ? 'fill-current scale-110' : 'scale-100'
-                    } ${!isLoadingFavorite && !isFavorite ? 'hover:scale-110' : ''}`} 
-                  />
-                )}
+                <Heart 
+                  className={`h-6 w-6 transition-transform duration-300 ${
+                    localFavorite ? 'fill-current scale-110' : 'scale-100 hover:scale-110'
+                  }`} 
+                />
               </button>
             </div>
 
@@ -312,7 +305,7 @@ const BookDetail = () => {
           </div>
         </div>
       </div>
-    <Recommendation/>
+      <Recommendation/>
     </div>
     </>
   );

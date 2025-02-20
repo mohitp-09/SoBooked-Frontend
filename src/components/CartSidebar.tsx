@@ -53,7 +53,7 @@ const CartSidebar: React.FC<CartSidebarProps> = ({ isOpen, onClose }) => {
 
     try {
       const response = await fetch(
-        "https://online-bookstore-rrd8.onrender.com/cart/getBooks",
+        "https://sobooked.onrender.com/cart/getBooks",
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -118,7 +118,7 @@ const CartSidebar: React.FC<CartSidebarProps> = ({ isOpen, onClose }) => {
 
     try {
       const response = await fetch(
-        "https://online-bookstore-rrd8.onrender.com/cart/delete",
+        "https://sobooked.onrender.com/cart/delete",
         {
           method: "POST",
           headers: {

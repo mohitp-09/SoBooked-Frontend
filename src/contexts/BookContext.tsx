@@ -14,6 +14,12 @@ interface Book {
   photo?: string;
 }
 
+interface SavedBookDTO {
+  id: number;
+  bookId: number;
+  userId: number;
+}
+
 interface BookContextType {
   books: Book[];
   filteredBooks: Book[];
@@ -23,6 +29,9 @@ interface BookContextType {
   setSearchQuery: (query: string) => void;
   cities: string[];
   loading: boolean;
+  savedBooks: number[];
+  setSavedBooks: (books: number[]) => void;
+  fetchSavedBooks: () => Promise<void>;
 }
 
 const BookContext = createContext<BookContextType | undefined>(undefined);
@@ -33,12 +42,13 @@ export const BookProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [cities, setCities] = useState<string[]>(['All Cities']);
   const [loading, setLoading] = useState<boolean>(true);
+  const [savedBooks, setSavedBooks] = useState<number[]>([]);
 
   useEffect(() => {
     const fetchBooks = async () => {
       setLoading(true);
       try {
-        const response = await fetch('https://online-bookstore-rrd8.onrender.com/api/getBooks');
+        const response = await fetch('https://sobooked.onrender.com/api/getBooks');
         if (!response.ok) throw new Error('Failed to fetch books');
         const data = await response.json();
         console.log("Fetched data", data);
@@ -55,6 +65,38 @@ export const BookProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     fetchBooks();
+  }, []);
+
+  const fetchSavedBooks = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    try {
+      const response = await fetch(
+        "https://sobooked.onrender.com/saved-books",
+        {
+          headers: {
+            "Authorization": `Bearer ${token}`
+          },
+        }
+      );
+
+      if (response.ok) {
+        const savedBooksData: SavedBookDTO[] = await response.json();
+        // Extract just the bookIds from the SavedBookDTO objects
+        const bookIds = savedBooksData.map(savedBook => savedBook.bookId);
+        setSavedBooks(bookIds);
+      }
+    } catch (error) {
+      console.error("Error fetching saved books:", error);
+    }
+  };
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      fetchSavedBooks();
+    }
   }, []);
 
   const filteredBooks = books.filter(book => {
@@ -77,7 +119,10 @@ export const BookProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setSelectedCity,
       setSearchQuery,
       cities,
-      loading
+      loading,
+      savedBooks,
+      setSavedBooks,
+      fetchSavedBooks
     }}>
       {children}
     </BookContext.Provider>

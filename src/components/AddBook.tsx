@@ -237,7 +237,7 @@ const AddBook: React.FC = () => {
       }
   
       const response = await fetch(
-        "https://online-bookstore-rrd8.onrender.com/api/add",
+        "https://sobooked.onrender.com/api/add",
         {
           method: "POST",
           body: formDataToSend,

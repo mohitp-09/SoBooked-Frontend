@@ -31,7 +31,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onClose })
       }
 
       // Step 1: Create payment intent by placing order
-      const orderResponse = await fetch('https://online-bookstore-rrd8.onrender.com/placeOrder', {
+      const orderResponse = await fetch('https://sobooked.onrender.com/placeOrder', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -84,7 +84,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onClose })
       }
 
       // Step 3: Confirm payment with our backend
-      const confirmResponse = await fetch(`https://online-bookstore-rrd8.onrender.com/pay?paymentId=${result.paymentIntent.id}`, {
+      const confirmResponse = await fetch(`https://sobooked.onrender.com/pay?paymentId=${result.paymentIntent.id}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

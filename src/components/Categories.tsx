@@ -82,7 +82,7 @@ const Categories = () => {
   
     try {
       const response = await fetch(
-        `https://online-bookstore-rrd8.onrender.com/cart/add?bookId=${book.id}&isRenting=${isRenting}`,
+        `https://sobooked.onrender.com/cart/add?bookId=${book.id}&isRenting=${isRenting}`,
         {
           method: "POST",
           headers: {
@@ -151,7 +151,7 @@ const Categories = () => {
     navigate(`/${slug}`);
   
     try {
-      const response = await fetch("https://online-bookstore-rrd8.onrender.com/api/user-activity/save", {
+      const response = await fetch("https://sobooked.onrender.com/api/user-activity/save", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

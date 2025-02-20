@@ -8,6 +8,7 @@ import {
   PlusCircle,
   Menu,
   X,
+  BookOpenCheck
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Link } from "react-router-dom";
@@ -70,14 +71,22 @@ const AuthenticatedNav: React.FC<AuthenticatedNavProps> = ({ onLogout }) => {
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
             <div className="flex-shrink-0 flex items-center">
-              <Link to="/" className="flex items-center">
-                <Book className="h-8 w-8 text-blue-600" />
-                <span className="ml-2 text-xl font-bold text-gray-900 [display:none]:max-[430px]:ml-2 hidden min-[470px]:inline">
-                  SoBooked
-                </span>
-              </Link>
-            </div>
-
+      <a href="/" className="group flex items-center transition-all duration-300 hover:scale-105">
+        <div className="relative">
+          <BookOpenCheck 
+            className="h-8 w-8 text-blue-600 transition-all duration-300 group-hover:text-blue-700" 
+            style={{
+              filter: 'drop-shadow(0 0 8px rgba(37, 99, 235, 0.2))'
+            }}
+          />
+          <div className="absolute -inset-1 animate-pulse rounded-full bg-blue-100 opacity-0 group-hover:opacity-50 transition-opacity duration-300" />
+        </div>
+        <span className="ml-2 text-xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent transition-all duration-300 group-hover:from-blue-700 group-hover:to-blue-900 [display:none]:max-[430px]:ml-2 hidden min-[470px]:inline">
+          SoBooked
+        </span>
+      </a>
+    </div>
+    
             {/* Search and City Selection Group */}
             <div className="flex flex-1 items-center justify-center max-w-2xl mx-4 ml-[210px] max-[1050px]:m-[0px_8px_0px_16px]">
               {/* Search Bar */}

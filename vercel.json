@@ -1,15 +1,8 @@
 {
     "rewrites": [
       {
-        "source": "/api/(.*)", 
-        "destination": "https://sobooked.onrender.com/api/$1"
-      }
-    ],
-    "redirects": [
-      {
         "source": "/(.*)", 
-        "destination": "/index.html",
-        "statusCode": 200
+        "destination": "https://sobooked.onrender.com/$1"
       }
     ]
   }

@@ -1,4 +1,6 @@
 import React, { useState, useRef } from "react";
+import { useNavigate } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
 import {
   Camera,
   Upload,
@@ -113,6 +115,7 @@ const AddBook: React.FC = () => {
   const cityInputRef = useRef<HTMLInputElement>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isConverting, setIsConverting] = useState(false);
+  const navigate = useNavigate();
 
   const filteredCities = cities.filter(city =>
     city.toLowerCase().includes(citySearch.toLowerCase())
@@ -331,7 +334,14 @@ const AddBook: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 pt-16 px-4 sm:px-6 lg:px-8 pb-8">
-      <div className="max-w-4xl mx-auto space-y-6">
+      <div className="max-w-4xl mx-auto">
+      <button
+        onClick={() => navigate('/')}
+        className="mb-8 inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 transition-colors"
+      >
+        <ArrowLeft className="h-4 w-4" />
+        Back to Catalog
+      </button>
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Add New Book</h1>

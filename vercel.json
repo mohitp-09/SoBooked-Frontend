@@ -1,17 +1,3 @@
 {
-    "rewrites": [
-      {
-        "source": "/login",
-        "destination": "https://sobooked.onrender.com/login"
-      },
-      {
-        "source": "/signup",
-        "destination": "https://sobooked.onrender.com/signup"
-      },
-      {
-        "source": "/(.*)",
-        "destination": "/index.html"
-      }
-    ]
-  }
-  
+    "rewrites":[{"source":"/(.*)","destination":"/index.html"}]
+}

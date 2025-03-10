@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Book, Search, Menu, X } from "lucide-react";
+import { Book, Search, Menu, X, BookOpenCheck } from "lucide-react";
 import AuthModal from "./AuthModal";
 import { Link } from "react-router-dom";
 import { useBooks } from "../contexts/BookContext";
@@ -58,13 +58,21 @@ const Navbar: React.FC<NavbarProps> = ({ onLogin }) => {
         <div className="flex justify-between items-center h-16">
           {/* Logo and Brand */}
           <div className="flex-shrink-0 flex items-center">
-            <Link to="/" className="flex items-center">
-              <Book className="h-8 w-8 text-blue-600" />
-              <span className="ml-2 text-xl font-bold text-gray-900">
-                BookHaven
-              </span>
-            </Link>
-          </div>
+      <a href="/" className="group flex items-center transition-all duration-300 hover:scale-105">
+        <div className="relative">
+          <BookOpenCheck 
+            className="h-8 w-8 text-blue-600 transition-all duration-300 group-hover:text-blue-700" 
+            style={{
+              filter: 'drop-shadow(0 0 8px rgba(37, 99, 235, 0.2))'
+            }}
+          />
+          <div className="absolute -inset-1 animate-pulse rounded-full bg-blue-100 opacity-0 group-hover:opacity-50 transition-opacity duration-300" />
+        </div>
+        <span className="ml-2 text-xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent transition-all duration-300 group-hover:from-blue-700 group-hover:to-blue-900 [display:none]:max-[430px]:ml-2 hidden min-[470px]:inline">
+          SoBooked
+        </span>
+      </a>
+    </div>
 
           {/* Desktop Search Bar */}
           <form

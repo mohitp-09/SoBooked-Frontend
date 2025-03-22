@@ -12,6 +12,9 @@ import {
   Loader2,
 } from "lucide-react";
 import PaymentForm from './PaymentForm';
+const tokenString = localStorage.getItem("token");
+const tokenObj = tokenString ? JSON.parse(tokenString) : null;
+const jwt = tokenObj?.jwt;
 
 // Initialize Stripe
 const stripePromise = loadStripe("pk_test_51PuacPFId8GxoslMJxzl4TjLM44cp5Fy7h4Nprv0QMs2DyGZfgfsjxutOPhffYO47jYLgH3sZkvWE35iAp7q1ZvW008VVCn2GP");
@@ -43,9 +46,9 @@ const CartSidebar: React.FC<CartSidebarProps> = ({ isOpen, onClose }) => {
   const fetchCartItems = async () => {
     setLoading(true);
     setError(null);
-    const token = localStorage.getItem("token");
+    // const token = localStorage.getItem("token");
 
-    if (!token) {
+    if (!jwt) {
       setError("User not authenticated. Please log in.");
       setLoading(false);
       return;
@@ -56,7 +59,7 @@ const CartSidebar: React.FC<CartSidebarProps> = ({ isOpen, onClose }) => {
         "https://sobooked.onrender.com/cart/getBooks",
         {
           headers: {
-            Authorization: `Bearer ${token}`,
+            Authorization: `Bearer ${jwt}`,
             "Content-Type": "application/json",
             "Accept": "application/json"
           },
@@ -109,7 +112,7 @@ const CartSidebar: React.FC<CartSidebarProps> = ({ isOpen, onClose }) => {
 
   const handleDelete = async (bookId: number) => {
     const token = localStorage.getItem("token");
-    if (!token) {
+    if (!jwt) {
       setError("User not authenticated. Please log in.");
       return;
     }
@@ -122,7 +125,7 @@ const CartSidebar: React.FC<CartSidebarProps> = ({ isOpen, onClose }) => {
         {
           method: "POST",
           headers: {
-            Authorization: `Bearer ${token}`,
+            Authorization: `Bearer ${jwt}`,
             "Content-Type": "application/x-www-form-urlencoded",
             "Accept": "application/json"
           },

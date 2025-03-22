@@ -3,6 +3,9 @@ import { BookOpen, ShoppingBag, XCircle, Loader2 } from 'lucide-react';
 import { useBooks } from '../contexts/BookContext';
 import { useParams, useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
+const tokenString = localStorage.getItem("token");
+const tokenObj = tokenString ? JSON.parse(tokenString) : null;
+const jwt = tokenObj?.jwt;
 
 const formatPrice = (price: number) => {
   return `₹${price}`;
@@ -114,7 +117,7 @@ export default function Recommendation() {
     e.stopPropagation();
     const token = localStorage.getItem("token");
     
-    if (!token) {
+    if (!jwt) {
       alert("Login required to add items to the cart.");
       return;
     }
@@ -125,7 +128,7 @@ export default function Recommendation() {
         {
           method: "POST",
           headers: {
-            "Authorization": `Bearer ${token}`
+            "Authorization": `Bearer ${jwt}`
           },
         }
       );

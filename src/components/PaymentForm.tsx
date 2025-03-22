@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { X } from 'lucide-react';
+const tokenString = localStorage.getItem("token");
+const tokenObj = tokenString ? JSON.parse(tokenString) : null;
+const jwt = tokenObj?.jwt;
 
 interface PaymentFormProps {
   amount: number;
@@ -26,7 +29,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onClose })
 
     try {
       const token = localStorage.getItem("token");
-      if (!token) {
+      if (!jwt) {
         throw new Error("Authentication token not found. Please log in again.");
       }
 
@@ -34,7 +37,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onClose })
       const orderResponse = await fetch('https://sobooked.onrender.com/placeOrder', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          'Authorization': `Bearer ${jwt}`,
           'Content-Type': 'application/json',
           'Accept': 'application/json'
         },
@@ -87,7 +90,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onSuccess, onClose })
       const confirmResponse = await fetch(`https://sobooked.onrender.com/pay?paymentId=${result.paymentIntent.id}`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          'Authorization': `Bearer ${jwt}`,
           'Content-Type': 'application/json'
         },
         credentials: 'include',

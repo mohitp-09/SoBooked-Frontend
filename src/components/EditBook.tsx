@@ -1,7 +1,7 @@
-import React, { useState, useRef } from "react";
-import { useNavigate } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
-import {
+import React, { useState, useRef, useEffect } from "react";
+import { useNavigate, useLocation, useParams } from 'react-router-dom';
+import { 
+  ArrowLeft,
   Camera,
   Upload,
   BookOpen,
@@ -11,10 +11,15 @@ import {
   X,
   ChevronDown,
   Phone,
-  FileText
+  FileText,
+  Save,
+  Loader2
 } from "lucide-react";
 import Swal from 'sweetalert2';
 import imageCompression from 'browser-image-compression';
+const tokenString = localStorage.getItem("token");
+const tokenObj = tokenString ? JSON.parse(tokenString) : null;
+const jwt = tokenObj?.jwt;
 
 interface BookFormData {
   name: string;
@@ -27,34 +32,22 @@ interface BookFormData {
   phoneNumber: string;
 }
 
-// Utility function to properly capitalize text
 const formatText = (text: string): string => {
-  // Handle empty or null input
   if (!text) return "";
-
-  // Split the text into words
   return text
     .toLowerCase()
     .split(' ')
     .map(word => {
-      // Skip empty words
       if (!word) return word;
-      
-      // List of words that should remain lowercase (unless at start)
       const lowercaseWords = ['a', 'an', 'the', 'and', 'but', 'or', 'for', 'nor', 'on', 'at', 'to', 'from', 'by', 'in', 'of'];
-      
-      // If it's a lowercase word and not at the start, keep it lowercase
       if (lowercaseWords.includes(word) && text.indexOf(word) !== 0) {
         return word;
       }
-      
-      // Capitalize the first letter and keep the rest in original case
       return word.charAt(0).toUpperCase() + word.slice(1);
     })
     .join(' ');
 };
 
-// Format city name
 const formatCityName = (city: string): string => {
   if (!city) return "";
   return city.split(' ')
@@ -95,7 +88,13 @@ const cities = [
   "Ujjain",
 ];
 
-const AddBook: React.FC = () => {
+const EditBook: React.FC = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { id } = useParams();
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
   const [formData, setFormData] = useState<BookFormData>({
     name: "",
     author: "",
@@ -108,14 +107,62 @@ const AddBook: React.FC = () => {
   });
 
   const [file, setFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null); 
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showCityDropdown, setShowCityDropdown] = useState(false);
   const [citySearch, setCitySearch] = useState("");
   const cityInputRef = useRef<HTMLInputElement>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isConverting, setIsConverting] = useState(false);
-  const navigate = useNavigate();
+
+  useEffect(() => {
+    const fetchBookData = async () => {
+      try {
+        if (location.state?.book) {
+          const book = location.state.book;
+          setFormData({
+            name: book.name,
+            author: book.author,
+            buyPrice: book.buyPrice,
+            rentalPrice: book.rentalPrice || 0,
+            category: book.category,
+            city: book.city,
+            description: book.description || "",
+            phoneNumber: book.phoneNumber || ""
+          });
+          if (book.photo) {
+            setPreviewUrl(book.photo);
+          }
+        } else {
+          // Fetch book data if not available in state
+          const response = await fetch(`https://sobooked.onrender.com/api/books/${id}`);
+          if (!response.ok) {
+            throw new Error('Failed to fetch book data');
+          }
+          const bookData = await response.json();
+          setFormData({
+            name: bookData.name,
+            author: bookData.author,
+            buyPrice: bookData.buyPrice,
+            rentalPrice: bookData.rentalPrice || 0,
+            category: bookData.category,
+            city: bookData.city,
+            description: bookData.description || "",
+            phoneNumber: bookData.phoneNumber || ""
+          });
+          if (bookData.photo) {
+            setPreviewUrl(bookData.photo);
+          }
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load book data');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchBookData();
+  }, [id, location.state]);
 
   const filteredCities = cities.filter(city =>
     city.toLowerCase().includes(citySearch.toLowerCase())
@@ -126,11 +173,10 @@ const AddBook: React.FC = () => {
   ) => {
     const { name, value } = e.target;
     
-    // Format different input types appropriately
     const formattedValue = 
       name === "name" || name === "author" ? formatText(value) :
       name === "city" ? formatCityName(value) :
-      name === "description" ? value :  // Remove trim() to allow spaces
+      name === "description" ? value :
       name === "buyPrice" || name === "rentalPrice" ? parseFloat(value) :
       name === "phoneNumber" && value.trim() === "" ? null : 
       value;
@@ -162,7 +208,6 @@ const AddBook: React.FC = () => {
     try {
       setIsConverting(true);
 
-      // Compression options
       const options = {
         maxSizeMB: 1,
         maxWidthOrHeight: 1920,
@@ -170,10 +215,8 @@ const AddBook: React.FC = () => {
         fileType: 'image/jpeg'
       };
 
-      // Compress the image
       const compressedFile = await imageCompression(selectedFile, options);
       
-      // Create a new file with a .jpg extension
       const finalFile = new File(
         [compressedFile],
         selectedFile.name.replace(/\.(heic|png|jpeg|jpg|gif)$/i, '.jpg'),
@@ -182,7 +225,6 @@ const AddBook: React.FC = () => {
 
       setFile(finalFile);
       
-      // Create preview URL
       const reader = new FileReader();
       reader.onloadend = () => setPreviewUrl(reader.result as string);
       reader.readAsDataURL(finalFile);
@@ -215,50 +257,62 @@ const AddBook: React.FC = () => {
     setIsSubmitting(true);
   
     try {
-      // Final formatting before submission
       const finalFormData = {
         ...formData,
         name: formatText(formData.name),
         author: formatText(formData.author),
         city: formatCityName(formData.city),
-        description: formData.description.trim()  // Only trim at submission
+        description: formData.description.trim(),
+        availableForRent: formData.rentalPrice > 0
       };
-
-      const bookData = JSON.stringify({
-        ...finalFormData,
-        availableForRent: finalFormData.rentalPrice > 0
-      });
   
-      const formDataToSend = new FormData();
-      formDataToSend.append("book", bookData);
-      
+      // If there's a file, use FormData
       if (file) {
+        const formDataToSend = new FormData();
+        formDataToSend.append("book", new Blob([JSON.stringify(finalFormData)], { type: 'application/json' }));
         formDataToSend.append("file", file);
+  
+        const response = await fetch(
+          `https://sobooked.onrender.com/admin/books/updateBook/${id}`,
+          {
+            method: "PUT",
+            body: formDataToSend,
+            headers: {
+              'Authorization': `Bearer ${jwt}`
+              // Don't set Content-Type when using FormData, browser will set it automatically with boundary
+            }
+          }
+        );
+  
+        const responseText = await response.text();
+        
+        if (!response.ok) {
+          throw new Error(responseText || `HTTP error! status: ${response.status}`);
+        }
       } else {
-        const emptyBlob = new Blob([], { type: "image/png" });
-        formDataToSend.append("file", emptyBlob, "empty.png");
+        // If no file, send JSON directly
+        const response = await fetch(
+          `https://sobooked.onrender.com/admin/books/updateBook/${id}`,
+          {
+            method: "PUT",
+            body: JSON.stringify(finalFormData),
+            headers: {
+              'Authorization': `Bearer ${jwt}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+  
+        const responseText = await response.text();
+        
+        if (!response.ok) {
+          throw new Error(responseText || `HTTP error! status: ${response.status}`);
+        }
       }
   
-      const response = await fetch(
-        "https://sobooked.onrender.com/api/add",
-        {
-          method: "POST",
-          body: formDataToSend,
-        }
-      );
-
-      // First try to get the response as text
-      const responseText = await response.text();
-      
-      // If the response is not OK, throw an error
-      if (!response.ok) {
-        throw new Error(responseText || `HTTP error! status: ${response.status}`);
-      }
-
-      // If we got here, the book was added successfully
       await Swal.fire({
         icon: "success",
-        title: `📚 "${finalFormData.name}" has been added to your collection!`,
+        title: `📚 "${finalFormData.name}" has been updated successfully!`,
         toast: true,
         position: "bottom",
         timer: 2500,
@@ -267,35 +321,18 @@ const AddBook: React.FC = () => {
         background: "#f9fafb",
         iconColor: "#4F46E5",
         customClass: {
-          popup: "rounded-lg border border-indigo-500 shadow-md px-4 py-2 max-w-[280px] sm:max-w-[320px]", 
+          popup: "rounded-lg border border-indigo-500 shadow-md px-4 py-2 max-w-[280px] sm:max-w-[320px]",
           title: "text-gray-900 font-medium text-sm sm:text-base tracking-wide text-center",
           timerProgressBar: "bg-indigo-500",
         },
       });
       
-  
-      // Reset form
-      setFormData({
-        name: "",
-        author: "",
-        buyPrice: 0,
-        rentalPrice: 0,
-        category: "",
-        city: "",
-        description: "",
-        phoneNumber: ""
-      });
-      setPreviewUrl(null);
-      setFile(null);
-      setCitySearch("");
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
+      navigate('/');
     } catch (error) {
-      console.error('Error adding book:', error);
+      console.error('Error updating book:', error);
       await Swal.fire({
         icon: "error",
-        title: error instanceof Error ? error.message : "Failed to add book",
+        title: error instanceof Error ? error.message : "Failed to update book",
         toast: true,
         position: "bottom",
         timer: 3000,
@@ -312,6 +349,7 @@ const AddBook: React.FC = () => {
       setIsSubmitting(false);
     }
   };
+  
 
   const removeImage = () => {
     setPreviewUrl(null);
@@ -332,21 +370,37 @@ const AddBook: React.FC = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-red-500">Error: {error}</div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 pt-10 px-4 sm:px-6 lg:px-8 pb-8">
       <div className="max-w-4xl mx-auto">
-      <button
-        onClick={() => navigate('/')}
-        className="mb-8 inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 transition-colors"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Back to Catalog
-      </button>
+        <button
+          onClick={() => navigate('/')}
+          className="mb-8 inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 transition-colors"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to Books
+        </button>
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Add New Book</h1>
+            <h1 className="text-3xl font-bold text-gray-900">Edit Book</h1>
             <p className="text-gray-500 mt-1">
-              Share your book with the community
+              Update your book's information
             </p>
           </div>
           <BookOpen className="w-10 h-10 text-blue-600" />
@@ -567,7 +621,6 @@ const AddBook: React.FC = () => {
                     ref={fileInputRef}
                     onChange={handleImageUpload}
                     className="hidden"
-                    required
                   />
                   <div className="text-center">
                     {isConverting ? (
@@ -624,16 +677,13 @@ const AddBook: React.FC = () => {
           >
             {isSubmitting ? (
               <>
-                <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Adding Book...
+                <Loader2 className="h-5 w-5 animate-spin" />
+                Updating Book...
               </>
             ) : (
               <>
-                <BookOpen className="w-5 h-5" />
-                Add Book to Library
+                <Save className="w-5 h-5" />
+                Save Changes
               </>
             )}
           </button>
@@ -643,4 +693,4 @@ const AddBook: React.FC = () => {
   );
 };
 
-export default AddBook;
+export default EditBook;

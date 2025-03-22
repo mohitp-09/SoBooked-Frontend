@@ -4,12 +4,15 @@ import { ArrowLeft, ShoppingBag, BookOpen, XCircle, MapPin, Phone, Tag, BookText
 import { useBooks } from '../contexts/BookContext';
 import Recommendation from './Recommendation';
 import Swal from 'sweetalert2';
+const tokenString = localStorage.getItem("token");
+const tokenObj = tokenString ? JSON.parse(tokenString) : null;
+const jwt = tokenObj?.jwt;
 
 const BookDetail = () => {
   const { bookName } = useParams();
   const navigate = useNavigate();
   const { filteredBooks, savedBooks, fetchSavedBooks } = useBooks();
-  const token = localStorage.getItem("token");
+  // const token = localStorage.getItem("token");
   const [isLoadingPurchase, setIsLoadingPurchase] = useState(false);
   const [isLoadingRent, setIsLoadingRent] = useState(false);
   const [localFavorite, setLocalFavorite] = useState(false);
@@ -22,10 +25,10 @@ const BookDetail = () => {
   const isFavorite = book ? savedBooks.includes(book.id) : false;
 
   useEffect(() => {
-    if (token) {
+    if (jwt) {
       fetchSavedBooks();
     }
-  }, [token]);
+  }, [jwt]);
 
   useEffect(() => {
     setLocalFavorite(isFavorite);
@@ -50,7 +53,7 @@ const BookDetail = () => {
   }
 
   const handleAddToCart = async (isRenting: boolean) => {
-    if (!token) {
+    if (!jwt) {
       alert("Login required to add items to the cart.");
       return;
     }
@@ -67,7 +70,7 @@ const BookDetail = () => {
         {
           method: "POST",
           headers: {
-            "Authorization": `Bearer ${token}`
+            "Authorization": `Bearer ${jwt}`
           },
         }
       );
@@ -119,7 +122,7 @@ const BookDetail = () => {
   };
 
   const handleToggleFavorite = async () => {
-    if (!token) {
+    if (!jwt) {
       alert("Login required to add items to favorites.");
       return;
     }
@@ -136,7 +139,7 @@ const BookDetail = () => {
         {
           method: "POST",
           headers: {
-            "Authorization": `Bearer ${token}`
+            "Authorization": `Bearer ${jwt}`
           },
         }
       );
@@ -167,7 +170,7 @@ const BookDetail = () => {
 
   return (
     <>
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 pt-16">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 pt-10">
       <button
         onClick={() => navigate('/')}
         className="mb-8 inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 transition-colors"

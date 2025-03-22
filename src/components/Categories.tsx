@@ -1,8 +1,12 @@
 import React, { useState } from "react";
-import { ShoppingBag, BookOpen, XCircle, Loader2, } from "lucide-react";
+import { ShoppingBag, BookOpen, XCircle, Loader2, Edit, Trash2 } from "lucide-react";
 import { useBooks } from '../contexts/BookContext';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../hooks/useAuth';
 import Swal from 'sweetalert2';
+const tokenString = localStorage.getItem("token");
+const tokenObj = tokenString ? JSON.parse(tokenString) : null;
+const jwt = tokenObj?.jwt;
 
 interface Book {
   id: string | number;
@@ -14,6 +18,8 @@ interface Book {
   rentalPrice?: number;
   category: string;
   city: string;
+  description?: string;
+  phoneNumber?: string;
 }
 
 const LoadingSkeleton = () => (
@@ -42,7 +48,7 @@ const Categories = () => {
   const { filteredBooks, loading } = useBooks();
   const [activeCategory, setActiveCategory] = useState<string>("all");
   const [loadingStates, setLoadingStates] = useState<Record<string, boolean>>({});
-  const token = localStorage.getItem("token");
+  const { isAuthenticated, role } = useAuth();
   const navigate = useNavigate();
 
   const categories = React.useMemo(() => {
@@ -58,7 +64,7 @@ const Categories = () => {
 
   const handleAddToCart = async (e: React.MouseEvent, book: Book, isRenting: boolean) => {
     e.stopPropagation();
-    if (!token) {
+    if (!isAuthenticated) {
       Swal.fire({
         icon: "error",
         title: "Login required to add items to the cart.",
@@ -81,12 +87,13 @@ const Categories = () => {
     setLoadingStates(prev => ({ ...prev, [loadingKey]: true }));
   
     try {
+      // const token = localStorage.getItem("token");
       const response = await fetch(
         `https://sobooked.onrender.com/cart/add?bookId=${book.id}&isRenting=${isRenting}`,
         {
           method: "POST",
           headers: {
-            "Authorization": `Bearer ${token}`
+            "Authorization": `Bearer ${jwt}`
           },
         }
       );
@@ -96,21 +103,21 @@ const Categories = () => {
       }
   
       Swal.fire({
-              icon: "success",
-              title: `📚 "${book.name}" added to cart!`,
-              toast: true,
-              position: "bottom",
-              timer: 2500,
-              timerProgressBar: true,
-              showConfirmButton: false,
-              background: "#f9fafb",
-              iconColor: "#4F46E5",
-              customClass: {
-                popup: "rounded-lg border border-indigo-500 shadow-md px-4 py-2 max-w-[280px] sm:max-w-[320px]", 
-                title: "text-gray-900 font-medium text-sm sm:text-base tracking-wide text-center",
-                timerProgressBar: "bg-indigo-500",
-              },
-            });
+        icon: "success",
+        title: `📚 "${book.name}" added to cart!`,
+        toast: true,
+        position: "bottom",
+        timer: 2500,
+        timerProgressBar: true,
+        showConfirmButton: false,
+        background: "#f9fafb",
+        iconColor: "#4F46E5",
+        customClass: {
+          popup: "rounded-lg border border-indigo-500 shadow-md px-4 py-2 max-w-[280px] sm:max-w-[320px]", 
+          title: "text-gray-900 font-medium text-sm sm:text-base tracking-wide text-center",
+          timerProgressBar: "bg-indigo-500",
+        },
+      });
       
     } catch (error) {
       console.error("Error adding to cart:", error);
@@ -134,6 +141,89 @@ const Categories = () => {
       setLoadingStates(prev => ({ ...prev, [loadingKey]: false }));
     }
   };
+
+  const handleEditBook = (e: React.MouseEvent, book: Book) => {
+    e.stopPropagation();
+    navigate(`/admin/books/edit/${book.id}`, { 
+      state: { 
+        book: {
+          id: book.id,
+          name: book.name,
+          author: book.author,
+          buyPrice: book.buyPrice,
+          rentalPrice: book.rentalPrice || 0,
+          category: book.category,
+          city: book.city,
+          description: book.description || "",
+          phoneNumber: book.phoneNumber || "",
+          photo: book.photo,
+          availableForRent: book.availableForRent
+        }
+      } 
+    });
+  };
+
+  const handleDeleteBook = async (e: React.MouseEvent, book: Book) => {
+    e.stopPropagation();
+    
+    const result = await Swal.fire({
+      title: 'Are you sure?',
+      text: "You won't be able to revert this!",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Yes, delete it!'
+    });
+
+    if (result.isConfirmed) {
+      const loadingKey = `${book.id}-delete`;
+      setLoadingStates(prev => ({ ...prev, [loadingKey]: true }));
+      
+      try {
+        // const token = localStorage.getItem("token");
+        const response = await fetch(
+          `https://sobooked.onrender.com/admin/books/deleteBook/${book.id}`,
+          {
+            method: "DELETE",
+            headers: {
+              "Authorization": `Bearer ${jwt}`
+            },
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error(`Failed to delete book! Status: ${response.status}`);
+        }
+
+        Swal.fire({
+          icon: "success",
+          title: "Book deleted successfully!",
+          toast: true,
+          position: "bottom",
+          timer: 2500,
+          timerProgressBar: true,
+          showConfirmButton: false,
+        });
+
+        // Refresh the page or update the book list
+        window.location.reload();
+      } catch (error) {
+        console.error("Error deleting book:", error);
+        Swal.fire({
+          icon: "error",
+          title: "Failed to delete book",
+          toast: true,
+          position: "bottom",
+          timer: 2500,
+          timerProgressBar: true,
+          showConfirmButton: false,
+        });
+      } finally {
+        setLoadingStates(prev => ({ ...prev, [loadingKey]: false }));
+      }
+    }
+  };
   
   const displayBooks = filteredBooks.filter(
     (book) => activeCategory === "all" || book.category === activeCategory
@@ -155,7 +245,7 @@ const Categories = () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
+          "Authorization": `Bearer ${jwt}`
         },
         body: JSON.stringify({
           bookId: bookId,
@@ -211,9 +301,33 @@ const Categories = () => {
             {displayBooks.map((book) => (
               <div
                 key={book.id}
-                onClick={() => handleBookClick(book.name, book.id)}
+                onClick={() => handleBookClick(book.name, Number(book.id))}
                 className="group relative bg-white/60 backdrop-blur-lg rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-all border border-white/20 cursor-pointer"
               >
+                {role === "ADMIN" && (
+                  <div className="absolute top-2 right-2 flex gap-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      onClick={(e) => handleEditBook(e, book)}
+                      className="p-1.5 bg-white/90 backdrop-blur-sm rounded-lg text-gray-700 hover:text-blue-600 shadow-lg hover:shadow-blue-200 transition-all"
+                      title="Edit Book"
+                    >
+                      <Edit className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={(e) => handleDeleteBook(e, book)}
+                      disabled={loadingStates[`${book.id}-delete`]}
+                      className="p-1.5 bg-white/90 backdrop-blur-sm rounded-lg text-gray-700 hover:text-red-600 shadow-lg hover:shadow-red-200 transition-all"
+                      title="Remove Book"
+                    >
+                      {loadingStates[`${book.id}-delete`] ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-4 w-4" />
+                      )}
+                    </button>
+                  </div>
+                )}
+
                 <div className="aspect-[3/4] overflow-hidden">
                   <img
                     src={
@@ -234,43 +348,45 @@ const Categories = () => {
                   </h3>
                   <p className="text-gray-600 text-xs mb-1 pb-3">by {book.author}</p>
 
-                  <div className="flex flex-col gap-1">
-                    <button
-                      onClick={(e) => handleAddToCart(e, book, false)}
-                      disabled={loadingStates[`${book.id}-buy`]}
-                      className="w-full px-3 py-1.5 bg-blue-600 text-white rounded-md text-xs flex items-center justify-center gap-1 hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {loadingStates[`${book.id}-buy`] ? (
-                        <Loader2 className="h-3 w-3 animate-spin" />
-                      ) : (
-                        <ShoppingBag className="h-3 w-3" />
-                      )}
-                      Buy ₹{book.buyPrice}
-                    </button>
-
-                    {book.availableForRent ? (
+                  {!role || role !== "ADMIN" ? (
+                    <div className="flex flex-col gap-1">
                       <button
-                        onClick={(e) => handleAddToCart(e, book, true)}
-                        disabled={loadingStates[`${book.id}-rent`]}
-                        className="w-full px-3 py-1.5 border border-blue-600 text-blue-600 rounded-md text-xs flex items-center justify-center gap-1 hover:bg-blue-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        onClick={(e) => handleAddToCart(e, book, false)}
+                        disabled={loadingStates[`${book.id}-buy`]}
+                        className="w-full px-3 py-1.5 bg-blue-600 text-white rounded-md text-xs flex items-center justify-center gap-1 hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        {loadingStates[`${book.id}-rent`] ? (
+                        {loadingStates[`${book.id}-buy`] ? (
                           <Loader2 className="h-3 w-3 animate-spin" />
                         ) : (
-                          <BookOpen className="h-3 w-3" />
+                          <ShoppingBag className="h-3 w-3" />
                         )}
-                        Rent ₹{book.rentalPrice}/mo
+                        Buy ₹{book.buyPrice}
                       </button>
-                    ) : (
-                      <button
-                        className="w-full px-3 py-1.5 border border-gray-400 text-gray-500 rounded-md text-xs flex items-center justify-center gap-1 bg-gray-100 cursor-not-allowed"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <XCircle className="h-3 w-3" />
-                        Not Available for Rent
-                      </button>
-                    )}
-                  </div>
+
+                      {book.availableForRent ? (
+                        <button
+                          onClick={(e) => handleAddToCart(e, book, true)}
+                          disabled={loadingStates[`${book.id}-rent`]}
+                          className="w-full px-3 py-1.5 border border-blue-600 text-blue-600 rounded-md text-xs flex items-center justify-center gap-1 hover:bg-blue-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {loadingStates[`${book.id}-rent`] ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <BookOpen className="h-3 w-3" />
+                          )}
+                          Rent ₹{book.rentalPrice}/mo
+                        </button>
+                      ) : (
+                        <button
+                          className="w-full px-3 py-1.5 border border-gray-400 text-gray-500 rounded-md text-xs flex items-center justify-center gap-1 bg-gray-100 cursor-not-allowed"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <XCircle className="h-3 w-3" />
+                          Not Available for Rent
+                        </button>
+                      )}
+                    </div>
+                  ) : null}
                 </div>
               </div>
             ))}

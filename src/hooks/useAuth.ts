@@ -1,37 +1,77 @@
 import { useState, useEffect } from "react";
 
-
+interface AuthState {
+  isAuthenticated: boolean;
+  role: string | null;
+}
 
 export function useAuth() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authState, setAuthState] = useState<AuthState>({
+    isAuthenticated: false,
+    role: null
+  });
 
   useEffect(() => {
-    const logtoken = localStorage.getItem("token");
-    console.log("Stored Token:", logtoken);
+    const storedToken = localStorage.getItem("token");
+    console.log("Stored Token:", storedToken);
   
-    if (logtoken) {
-      setIsAuthenticated(true);
+    if (storedToken) {
+      try {
+        const parsedToken = JSON.parse(storedToken);
+        setAuthState({
+          isAuthenticated: true,
+          role: parsedToken.role || null
+        });
+      } catch (error) {
+        console.error("Error parsing token:", error);
+        setAuthState({
+          isAuthenticated: false,
+          role: null
+        });
+      }
     } else {
-      setIsAuthenticated(false);
+      setAuthState({
+        isAuthenticated: false,
+        role: null
+      });
     }
   }, []); // Runs only once when component mounts
   
   const handleLogin = () => {
-    const logtoken = localStorage.getItem("token"); // Ensure latest value
-    if (logtoken) {
-      setIsAuthenticated(true);
+    const storedToken = localStorage.getItem("token"); // Ensure latest value
+    if (storedToken) {
+      try {
+        const parsedToken = JSON.parse(storedToken);
+        setAuthState({
+          isAuthenticated: true,
+          role: parsedToken.role || null
+        });
+      } catch (error) {
+        console.error("Error parsing token:", error);
+        setAuthState({
+          isAuthenticated: false,
+          role: null
+        });
+      }
     } else {
-      setIsAuthenticated(false);
+      setAuthState({
+        isAuthenticated: false,
+        role: null
+      });
     }
   };
   
-
   const handleLogout = () => {
-    setIsAuthenticated(false);
+    localStorage.removeItem("token");
+    setAuthState({
+      isAuthenticated: false,
+      role: null
+    });
   };
 
   return {
-    isAuthenticated,
+    isAuthenticated: authState.isAuthenticated,
+    role: authState.role,
     handleLogin,
     handleLogout,
   };

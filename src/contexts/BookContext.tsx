@@ -1,5 +1,9 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
+const tokenString = localStorage.getItem("token");
+const tokenObj = tokenString ? JSON.parse(tokenString) : null;
+const jwt = tokenObj?.jwt;
+
 interface Book {
   id: number;
   name: string;
@@ -68,33 +72,43 @@ export const BookProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const fetchSavedBooks = async () => {
-    const token = localStorage.getItem("token");
-    if (!token) return;
+    if (!jwt) {
+      console.log('No JWT token found, skipping saved books fetch');
+      return;
+    }
 
     try {
       const response = await fetch(
         "https://sobooked.onrender.com/saved-books",
         {
+          method: 'GET',
           headers: {
-            "Authorization": `Bearer ${token}`
+            "Authorization": `Bearer ${jwt}`,
+            "Content-Type": "application/json"
           },
         }
       );
 
-      if (response.ok) {
-        const savedBooksData: SavedBookDTO[] = await response.json();
-        // Extract just the bookIds from the SavedBookDTO objects
-        const bookIds = savedBooksData.map(savedBook => savedBook.bookId);
-        setSavedBooks(bookIds);
+      console.log('Saved books response status:', response.status);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to fetch saved books: ${response.status} ${errorText}`);
       }
+
+      const savedBooksData: SavedBookDTO[] = await response.json();
+      console.log('Saved books data:', savedBooksData);
+      
+      const bookIds = savedBooksData.map(savedBook => savedBook.bookId);
+      setSavedBooks(bookIds);
     } catch (error) {
       console.error("Error fetching saved books:", error);
     }
   };
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (token) {
+    if (jwt) {
+      console.log('JWT token found, fetching saved books');
       fetchSavedBooks();
     }
   }, []);
@@ -136,3 +150,5 @@ export const useBooks = () => {
   }
   return context;
 };
+
+export default useBooks

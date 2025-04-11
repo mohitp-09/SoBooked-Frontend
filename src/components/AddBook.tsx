@@ -11,6 +11,7 @@ import {
   X,
   ChevronDown,
   Phone,
+  IndianRupee ,
   FileText
 } from "lucide-react";
 import Swal from 'sweetalert2';
@@ -403,7 +404,7 @@ const AddBook: React.FC = () => {
                     Selling Price
                   </label>
                   <div className="relative">
-                    <DollarSign className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+                    <IndianRupee className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
                     <input
                       type="number"
                       name="buyPrice"
@@ -422,7 +423,7 @@ const AddBook: React.FC = () => {
                     Rental Price
                   </label>
                   <div className="relative">
-                    <DollarSign className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+                    <IndianRupee className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
                     <input
                       type="number"
                       name="rentalPrice"
